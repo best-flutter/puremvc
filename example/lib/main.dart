@@ -3,29 +3,31 @@ import 'package:puremvc/puremvc.dart';
 
 NumberModel numberModel = new NumberModel();
 WidgetBuilder statelessBuilder;
-void main(){
+void main() {
   Models.add(numberModel);
-  statelessBuilder= PureMvc.eventBuilder(["counter"], (c){
-    return StatelessDemo(title: 'Flutter Demo Home Page',counter: numberModel.counter,);
+  statelessBuilder = PureMvc.eventBuilder(["counter"], (c) {
+    return StatelessDemo(
+      title: 'Flutter Demo Home Page',
+      counter: numberModel.counter,
+    );
   });
   runApp(MyApp());
 }
 
-
-class NumberModel extends BaseModel{
+class NumberModel extends BaseModel {
   @override
   String get name => "number";
 
-  int counter=0;
+  int counter = 0;
 
   @override
   void update(String event, data) {
-    if(event == "add"){
+    if (event == "add") {
       add();
     }
   }
 
-  void add(){
+  void add() {
     ++counter;
     notify("counter", counter);
   }
@@ -34,7 +36,6 @@ class NumberModel extends BaseModel{
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
 
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -42,7 +43,10 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: StatefulDemo(title: 'Flutter Demo Home Page',counter: numberModel.counter,),
+      home: StatefulDemo(
+        title: 'Flutter Demo Home Page',
+        counter: numberModel.counter,
+      ),
     );
   }
 }
@@ -50,23 +54,18 @@ class MyApp extends StatelessWidget {
 class StatefulDemo extends StatefulWidget {
   final int counter;
 
-  StatefulDemo({Key key, this.title,this.counter}) : super(key: key);
+  StatefulDemo({Key key, this.title, this.counter}) : super(key: key);
   final String title;
 
   @override
   _StatefulDemoState createState() => _StatefulDemoState();
 }
 
-
-class StatelessDemo extends StatelessWidget{
+class StatelessDemo extends StatelessWidget {
   int counter;
   String title;
 
-  StatelessDemo({
-    this.counter,
-    this.title
-});
-
+  StatelessDemo({this.counter, this.title});
 
   void _incrementCounter() {
     dispatch("number/add", null);
@@ -89,11 +88,12 @@ class StatelessDemo extends StatelessWidget{
               '$counter',
               style: Theme.of(context).textTheme.display1,
             ),
-            new RaisedButton(onPressed: (){
-
-              Navigator.pop(context);
-
-            },child: new Text("Back"),)
+            new RaisedButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: new Text("Back"),
+            )
           ],
         ),
       ),
@@ -106,18 +106,16 @@ class StatelessDemo extends StatelessWidget{
   }
 }
 
-
-
 class _StatefulDemoState extends ObserverState<StatefulDemo> {
   int _counter;
   @override
   void initState() {
-    _counter= widget.counter;
+    _counter = widget.counter;
     bind("counter", onCounter);
     super.initState();
   }
 
-  void onCounter(int counter){
+  void onCounter(int counter) {
     this._counter = counter;
   }
 
@@ -142,11 +140,13 @@ class _StatefulDemoState extends ObserverState<StatefulDemo> {
               '$_counter',
               style: Theme.of(context).textTheme.display1,
             ),
-            new RaisedButton(onPressed: (){
-
-              Navigator.push(context, new MaterialPageRoute(builder: statelessBuilder));
-
-            },child: new Text("Stateless"),)
+            new RaisedButton(
+              onPressed: () {
+                Navigator.push(
+                    context, new MaterialPageRoute(builder: statelessBuilder));
+              },
+              child: new Text("Stateless"),
+            )
           ],
         ),
       ),

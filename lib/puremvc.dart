@@ -4,7 +4,6 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
-
 class _EventInfo {
   State target;
   String name;
@@ -13,41 +12,37 @@ class _EventInfo {
   _EventInfo(this.target, this.name, this.callback);
 
   void call(String event, Object data) {
-    target.setState((){
+    target.setState(() {
       Function.apply(this.callback, [data]);
     });
   }
 }
 
-
-
 class _WidgetBuilderEventListener extends StatefulWidget {
-
   WidgetBuilder builder;
   var event;
 
-  _WidgetBuilderEventListener(this.builder,this.event);
-
-
+  _WidgetBuilderEventListener(this.builder, this.event);
 
   @override
-  __WidgetBuilderEventListenerState createState() => __WidgetBuilderEventListenerState();
+  __WidgetBuilderEventListenerState createState() =>
+      __WidgetBuilderEventListenerState();
 }
 
-class __WidgetBuilderEventListenerState extends ObserverState<_WidgetBuilderEventListener> {
-
+class __WidgetBuilderEventListenerState
+    extends ObserverState<_WidgetBuilderEventListener> {
   @override
   void initState() {
-    if(widget.event is String){
+    if (widget.event is String) {
       bind(widget.event, onEvent);
-    }else{
-      widget.event.forEach((e)=>bind(e,onEvent));
+    } else {
+      widget.event.forEach((e) => bind(e, onEvent));
     }
 
     super.initState();
   }
 
-  void onEvent(var data){
+  void onEvent(var data) {
     print("event");
   }
 
@@ -56,7 +51,6 @@ class __WidgetBuilderEventListenerState extends ObserverState<_WidgetBuilderEven
     return widget.builder(context);
   }
 }
-
 
 class _EventListener {
   List<BaseModel> models = [];
@@ -126,7 +120,7 @@ class _EventListener {
           eventInfos.removeAt(i);
         }
       }
-      if(eventInfos.length==0){
+      if (eventInfos.length == 0) {
         listeners.remove(key);
       }
     }
@@ -153,19 +147,13 @@ class Models {
   }
 }
 
-
-
-class PureMvc{
-
-
-
-  static WidgetBuilder eventBuilder(var eventOrEventList,WidgetBuilder builder) {
-
-    return (BuildContext context){
-      return new _WidgetBuilderEventListener(builder,eventOrEventList);
+class PureMvc {
+  static WidgetBuilder eventBuilder(
+      var eventOrEventList, WidgetBuilder builder) {
+    return (BuildContext context) {
+      return new _WidgetBuilderEventListener(builder, eventOrEventList);
     };
   }
-
 }
 
 void dispatch(String event, Object data) {
@@ -188,11 +176,9 @@ abstract class BaseModel {
   Future dispose() {}
 
   void update(String event, var data) {}
-
 }
 
 abstract class ObserverState<T extends StatefulWidget> extends State<T> {
-
   void bind(String event, Function listener) {
     _listener.bind(this, event, listener);
   }

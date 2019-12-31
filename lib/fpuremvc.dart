@@ -64,7 +64,13 @@ class _ModelHolder {
   bool _init = false;
   _ModelHolder(this.model);
   void setup() async {
-    model.setup().whenComplete(() {
+    var ret = model.setup();
+    if (ret == null) {
+      _init = true;
+      return;
+    }
+
+    ret.whenComplete(() {
       _init = true;
       while (queue.length > 0) {
         _Event event = queue.removeAt(0);

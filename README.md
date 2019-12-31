@@ -5,6 +5,12 @@ puremvc for flutter
 页面与逻辑完全分离，页面可以不知道模型，模型可以不知道页面。
 
 
+为什么要有这个库？
+
+目前的状态管理库要么使用过于复杂，要么并不能做到模型和页面完全隔离，所以有这个库。
+
+
+
 
 ## Getting Started
 
@@ -187,12 +193,12 @@ class StatelessDemo extends StatelessWidget{
 ```
 WidgetBuilder statelessBuilder= PureMvc.eventBuilder(["counter"], (c){
     return StatelessDemo(title: 'Flutter Demo Home Page',counter: numberModel.counter,);
-  });
+});
 ```
 
 
 ```
- Navigator.push(context, new MaterialPageRoute(builder: statelessBuilder));
+Navigator.push(context, new MaterialPageRoute(builder: statelessBuilder));
 ```
 
 

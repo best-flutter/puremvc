@@ -21,6 +21,11 @@ class NumberModel extends BaseModel {
   int counter = 0;
 
   @override
+  Future setup() async {
+    await Future.delayed(new Duration(seconds: 2));
+  }
+
+  @override
   void update(String event, data) {
     if (event == "add") {
       add();
@@ -68,7 +73,7 @@ class StatelessDemo extends StatelessWidget {
   StatelessDemo({this.counter, this.title});
 
   void _incrementCounter() {
-    dispatch("number/add", null);
+    dispatch("number/add");
   }
 
   @override
@@ -134,7 +139,7 @@ class _StatefulDemoState extends ObserverState<StatefulDemo> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Text(
-              'You have pushed the button this many times:',
+              'Model is setting up,so if you click button quickly,it looks like not working',
             ),
             Text(
               '$_counter',

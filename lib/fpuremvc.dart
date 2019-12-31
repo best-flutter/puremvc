@@ -4,12 +4,12 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
-class _EventInfo {
+class _ListenerInfo {
   State target;
-  String name;
+  String event;
   Function callback;
 
-  _EventInfo(this.target, this.name, this.callback);
+  _ListenerInfo(this.target, this.event, this.callback);
 
   void call(String event, Object data) {
     target.setState(() {
@@ -52,20 +52,57 @@ class __WidgetBuilderEventListenerState
   }
 }
 
-class _EventListener {
-  List<BaseModel> models = [];
+class _Event {
+  String event;
+  Object data;
 
-  Map<String, List<_EventInfo>> listeners = {};
-  Map<String, BaseModel> modelMap = {};
+  _Event(this.event, this.data);
+}
+
+class _ModelHolder {
+  final BaseModel model;
+  bool _init = false;
+  _ModelHolder(this.model);
+  void setup() async {
+    model.setup().whenComplete(() {
+      _init = true;
+      while (queue.length > 0) {
+        _Event event = queue.removeAt(0);
+        model.update(event.event, event.data);
+      }
+    });
+  }
+
+  void dispose() {
+    model.dispose();
+  }
+
+  List<_Event> queue = [];
+  void update(String event, Object data) {
+    if (!_init) {
+      //添加到队列
+      print("Still seting up, add event to the queue");
+      queue.add(new _Event(event, data));
+    } else {
+      model.update(event, data);
+    }
+  }
+}
+
+class _EventListener {
+  List<_ModelHolder> models = [];
+
+  Map<String, List<_ListenerInfo>> listeners = {};
+  Map<String, _ModelHolder> modelMap = {};
 
   void dispatch(String event, Object data) {
     List<String> part = event.split("/");
     if (part.length == 1) {
-      for (BaseModel model in models) {
+      for (_ModelHolder model in models) {
         model.update(event, data);
       }
     } else {
-      BaseModel model = modelMap[part[0]];
+      _ModelHolder model = modelMap[part[0]];
       if (model == null) {
         print("Model is not exists!");
         return;
@@ -74,25 +111,38 @@ class _EventListener {
     }
   }
 
+  bool init = false;
+
   void add(BaseModel model) {
-    models.add(model);
-    modelMap[model.name] = model;
-    scheduleMicrotask(() {
-      for (BaseModel model in models) {
-        model.setup();
-      }
-    });
+    _ModelHolder holder = new _ModelHolder(model);
+    models.add(holder);
+    modelMap[model.name] = holder;
+    if (!init) {
+      init = true;
+      scheduleMicrotask(() {
+        for (_ModelHolder model in models) {
+          model.setup();
+        }
+      });
+    }
   }
 
   void remove(BaseModel model) {
-    models.remove(model);
+    _ModelHolder holder = models.firstWhere(
+        (_ModelHolder holder) => holder.model == model,
+        orElse: () => null);
+    if (holder == null) {
+      print("Cannot find model to remove ");
+      return;
+    }
+    models.remove(holder);
     modelMap.remove(model.name);
-    model.dispose();
+    holder.dispose();
   }
 
   void bind(Object target, String event, Function listener) {
     var old = listeners[event];
-    _EventInfo info = new _EventInfo(target, event, listener);
+    _ListenerInfo info = new _ListenerInfo(target, event, listener);
     if (old == null) {
       listeners[event] = [info];
     } else {
@@ -107,14 +157,14 @@ class _EventListener {
       return;
     }
 
-    for (_EventInfo call in old) {
+    for (_ListenerInfo call in old) {
       call.call(event, data);
     }
   }
 
   void unbiind(Object target) {
     for (String key in []..addAll(listeners.keys)) {
-      List<_EventInfo> eventInfos = listeners[key];
+      List<_ListenerInfo> eventInfos = listeners[key];
       for (int i = eventInfos.length - 1; i >= 0; --i) {
         if (eventInfos[i].target == target) {
           eventInfos.removeAt(i);
@@ -127,7 +177,9 @@ class _EventListener {
   }
 
   BaseModel getModel(Type type) {
-    return models.firstWhere((BaseModel model) => model.runtimeType == type);
+    return models
+        .firstWhere((_ModelHolder model) => model.model.runtimeType == type)
+        .model;
   }
 }
 
@@ -156,7 +208,7 @@ class PureMvc {
   }
 }
 
-void dispatch(String event, Object data) {
+void dispatch(String event, [Object data]) {
   _listener.dispatch(event, data);
 }
 

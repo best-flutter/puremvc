@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:puremvc/puremvc.dart';
+import 'package:fpuremvc/fpuremvc.dart';
 
 NumberModel numberModel = new NumberModel();
 WidgetBuilder statelessBuilder;

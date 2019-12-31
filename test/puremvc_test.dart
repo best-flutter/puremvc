@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:puremvc/puremvc.dart';
+import 'package:fpuremvc/fpuremvc.dart';
 
 void main() {
   test('adds one to input values', () {

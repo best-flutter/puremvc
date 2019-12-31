@@ -1,4 +1,4 @@
-library puremvc;
+library fpuremvc;
 
 import 'dart:async';
 

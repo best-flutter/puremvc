@@ -46,6 +46,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  fpuremvc:
+    dependency: "direct main"
+    description:
+      path: ".."
+      relative: true
+    source: path
+    version: "0.0.1"
   matcher:
     dependency: transitive
     description:
@@ -74,13 +81,6 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.8.0+1"
-  puremvc:
-    dependency: "direct main"
-    description:
-      path: ".."
-      relative: true
-    source: path
-    version: "0.0.1"
   quiver:
     dependency: transitive
     description:

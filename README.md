@@ -9,6 +9,17 @@ puremvc for flutter
 ## Getting Started
 
 
+#### 导入
+
+```
+import 'package:fpuremvc/fpuremvc.dart';
+```
+
+因为这里puremvc已经被占用了，所以只能这样
+
+
+#### 流程
+
 定义一个模型，模型用于存储数据和接收dispatch的消息并处理，完成之后notify通知已经完成
 
 ```

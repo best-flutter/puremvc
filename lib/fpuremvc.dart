@@ -74,13 +74,33 @@ class _ModelHolder {
       _init = true;
       while (queue.length > 0) {
         _Event event = queue.removeAt(0);
-        model.update(event.event, event.data);
+        updateModel(event.event, event.data);
       }
     });
   }
 
   void dispose() {
     model.dispose();
+  }
+
+  void updateModel(String event, Object data){
+    notify("${model.name}/$event@start", null);
+    var update = model.update(event, data);
+    if(update == null){
+      notify("$event@end",null);
+      return;
+    }
+
+    if(update is Future){
+      update.then((data){
+        notify("${model.name}/$event@ok", data);
+      }).catchError((e){
+        notify("${model.name}/$event@fail", e);
+      }).whenComplete((){
+        notify("${model.name}/$event@end", null);
+      });
+    }
+
   }
 
   List<_Event> queue = [];
@@ -90,7 +110,7 @@ class _ModelHolder {
       print("Still seting up, add event to the queue");
       queue.add(new _Event(event, data));
     } else {
-      model.update(event, data);
+      updateModel(event, data);
     }
   }
 }
@@ -135,7 +155,7 @@ class _EventListener {
 
   void remove(BaseModel model) {
     _ModelHolder holder = models.firstWhere(
-        (_ModelHolder holder) => holder.model == model,
+            (_ModelHolder holder) => holder.model == model,
         orElse: () => null);
     if (holder == null) {
       print("Cannot find model to remove ");
@@ -159,7 +179,7 @@ class _EventListener {
   void notifyListeners(String event, Object data) {
     var old = listeners[event];
     if (old == null) {
-      print("Cannot find listeners with event $event");
+      // print("Cannot find listeners with event $event");
       return;
     }
 
@@ -233,7 +253,7 @@ abstract class BaseModel {
 
   Future dispose() {}
 
-  void update(String event, var data) {}
+  update(String event, var data) {}
 }
 
 abstract class ObserverState<T extends StatefulWidget> extends State<T> {

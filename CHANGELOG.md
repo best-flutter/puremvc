@@ -1,4 +1,12 @@
-# [0.0.5]
+
+# [0.0.6]
+
+* 监控update返回值，如果是Future，则通知 model/event@ok 或者 model/event@fail事件
+* 在update之前发送 model/event@start事件
+* 在update之后发送 model/event@end事件
+
+
+## [0.0.5]
 
 * 修复setup不返回值后出现异常的bug
 

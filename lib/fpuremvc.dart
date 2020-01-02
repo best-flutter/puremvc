@@ -13,7 +13,16 @@ class _ListenerInfo {
 
   void call(String event, Object data) {
     target.setState(() {
-      Function.apply(this.callback, [data]);
+      //callback有一个参数或者没有参数
+      try{
+        Function.apply(this.callback, [data]);
+      }catch(e){
+        try{
+          Function.apply(this.callback, []);
+        }catch(e){
+          print("Cannot call callback ${e}");
+        }
+      }
     });
   }
 }

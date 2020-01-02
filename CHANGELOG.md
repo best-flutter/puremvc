@@ -1,5 +1,9 @@
+# [0.0.7]
 
-# [0.0.6]
+* 在notify的时候检查调用异常，调整函数参数个数
+
+
+## [0.0.6]
 
 * 监控update返回值，如果是Future，则通知 model/event@ok 或者 model/event@fail事件
 * 在update之前发送 model/event@start事件

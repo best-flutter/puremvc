@@ -4,7 +4,6 @@ import 'package:fpuremvc/fpuremvc.dart';
 NumberModel numberModel = new NumberModel();
 WidgetBuilder statelessBuilder;
 void main() {
-  Models.add(numberModel);
   statelessBuilder = PureMvc.eventBuilder(["counter"], (c) {
     return StatelessDemo(
       title: 'Flutter Demo Home Page',

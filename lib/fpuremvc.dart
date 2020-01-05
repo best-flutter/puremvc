@@ -233,21 +233,8 @@ class _EventListener {
   }
 }
 
+
 _EventListener _listener = new _EventListener();
-
-class Models {
-  static void add(BaseModel model) {
-    _listener.add(model);
-  }
-
-  static void remove(BaseModel model) {
-    _listener.remove(model);
-  }
-
-  static BaseModel getModel(Type type) {
-    return _listener.getModel(type);
-  }
-}
 
 /// error handler,if the error is handled ,return true
 typedef bool OnError(e);
@@ -258,6 +245,18 @@ class PureMvc {
     return (BuildContext context) {
       return new _WidgetBuilderEventListener(builder, eventOrEventList);
     };
+  }
+
+  static void add(BaseModel model) {
+    _listener.add(model);
+  }
+
+  static void remove(BaseModel model) {
+    _listener.remove(model);
+  }
+
+  static BaseModel getModel(Type type) {
+    return _listener.getModel(type);
   }
 
   void setGlobalErrorHandler(OnError errorHandler) {
@@ -275,7 +274,7 @@ bool notify(String event, Object data) {
 
 abstract class BaseModel {
   BaseModel() {
-    Models.add(this);
+    PureMvc.add(this);
   }
 
   String get name;

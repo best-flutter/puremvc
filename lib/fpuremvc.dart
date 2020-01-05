@@ -14,12 +14,12 @@ class _ListenerInfo {
   void call(String event, Object data) {
     target.setState(() {
       //callback有一个参数或者没有参数
-      try{
+      try {
         Function.apply(this.callback, [data]);
-      }catch(e){
-        try{
+      } catch (e) {
+        try {
           Function.apply(this.callback, []);
-        }catch(e){
+        } catch (e) {
           print("Cannot call callback ${e}");
         }
       }
@@ -92,24 +92,29 @@ class _ModelHolder {
     model.dispose();
   }
 
-  void updateModel(String event, Object data){
+  void updateModel(String event, Object data) {
     notify("${model.name}/$event@start", null);
     var update = model.update(event, data);
-    if(update == null){
-      notify("$event@end",null);
+    if (update == null) {
+      notify("$event@end", null);
       return;
     }
 
-    if(update is Future){
-      update.then((data){
+    if (update is Future) {
+      update.then((data) {
         notify("${model.name}/$event@ok", data);
-      }).catchError((e){
-        notify("${model.name}/$event@fail", e);
-      }).whenComplete((){
+      }).catchError((e) {
+        if (!notify("${model.name}/$event@fail", e)) {
+          if (!_listener.handleUnhandledError(e)) {
+            print("Error has happened, and no handle is found $e");
+            return Future.error(e);
+          }
+        }
+        return null;
+      }).whenComplete(() {
         notify("${model.name}/$event@end", null);
       });
     }
-
   }
 
   List<_Event> queue = [];
@@ -129,6 +134,15 @@ class _EventListener {
 
   Map<String, List<_ListenerInfo>> listeners = {};
   Map<String, _ModelHolder> modelMap = {};
+
+  OnError globalErrorHandler;
+
+  bool handleUnhandledError(e) {
+    if (globalErrorHandler == null) {
+      return false;
+    }
+    return globalErrorHandler(e);
+  }
 
   void dispatch(String event, Object data) {
     List<String> part = event.split("/");
@@ -164,7 +178,7 @@ class _EventListener {
 
   void remove(BaseModel model) {
     _ModelHolder holder = models.firstWhere(
-            (_ModelHolder holder) => holder.model == model,
+        (_ModelHolder holder) => holder.model == model,
         orElse: () => null);
     if (holder == null) {
       print("Cannot find model to remove ");
@@ -185,16 +199,17 @@ class _EventListener {
     }
   }
 
-  void notifyListeners(String event, Object data) {
+  bool notifyListeners(String event, Object data) {
     var old = listeners[event];
     if (old == null) {
       // print("Cannot find listeners with event $event");
-      return;
+      return false;
     }
 
     for (_ListenerInfo call in old) {
       call.call(event, data);
     }
+    return true;
   }
 
   void unbiind(Object target) {
@@ -234,6 +249,9 @@ class Models {
   }
 }
 
+/// error handler,if the error is handled ,return true
+typedef bool OnError(e);
+
 class PureMvc {
   static WidgetBuilder eventBuilder(
       var eventOrEventList, WidgetBuilder builder) {
@@ -241,14 +259,18 @@ class PureMvc {
       return new _WidgetBuilderEventListener(builder, eventOrEventList);
     };
   }
+
+  void setGlobalErrorHandler(OnError errorHandler) {
+    _listener.globalErrorHandler = errorHandler;
+  }
 }
 
 void dispatch(String event, [Object data]) {
   _listener.dispatch(event, data);
 }
 
-void notify(String event, Object data) {
-  _listener.notifyListeners(event, data);
+bool notify(String event, Object data) {
+  return _listener.notifyListeners(event, data);
 }
 
 abstract class BaseModel {

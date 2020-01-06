@@ -1,7 +1,6 @@
 library fpuremvc;
 
 import 'dart:async';
-
 import 'package:flutter/widgets.dart';
 
 class _ListenerInfo {
@@ -12,24 +11,25 @@ class _ListenerInfo {
   _ListenerInfo(this.target, this.event, this.callback);
 
   void call(String event, Object data) {
-    target.setState(() {
-      //callback有一个参数或者没有参数
-      try {
-        Function.apply(this.callback, [data]);
-      } catch (e) {
+    if (target.mounted) {
+      target.setState(() {
         try {
-          Function.apply(this.callback, []);
+          Function.apply(this.callback, [data]);
         } catch (e) {
-          print("Cannot call callback ${e}");
+          print(e);
         }
-      }
-    });
+      });
+    } else {
+      print(
+          "Trying to notify event $event but the target is not mounted anymore");
+    }
   }
 }
 
+@immutable
 class _WidgetBuilderEventListener extends StatefulWidget {
-  WidgetBuilder builder;
-  var event;
+  final WidgetBuilder builder;
+  final dynamic event;
 
   _WidgetBuilderEventListener(this.builder, this.event);
 
@@ -51,9 +51,7 @@ class __WidgetBuilderEventListenerState
     super.initState();
   }
 
-  void onEvent(var data) {
-    print("event");
-  }
+  void onEvent(var data) {}
 
   @override
   Widget build(BuildContext context) {
@@ -95,11 +93,6 @@ class _ModelHolder {
   void updateModel(String event, Object data) {
     notify("${model.name}/$event@start", null);
     var update = model.update(event, data);
-    if (update == null) {
-      notify("$event@end", null);
-      return;
-    }
-
     if (update is Future) {
       update.then((data) {
         notify("${model.name}/$event@ok", data);
@@ -114,6 +107,9 @@ class _ModelHolder {
       }).whenComplete(() {
         notify("${model.name}/$event@end", null);
       });
+    } else {
+      //不是future
+      notify("${model.name}/$event@ok", update);
     }
   }
 
@@ -190,6 +186,10 @@ class _EventListener {
   }
 
   void bind(Object target, String event, Function listener) {
+    assert(target != null);
+    assert(event != null);
+    assert(listener != null);
+
     var old = listeners[event];
     _ListenerInfo info = new _ListenerInfo(target, event, listener);
     if (old == null) {
@@ -198,15 +198,32 @@ class _EventListener {
       old.add(info);
     }
   }
+  //static const String SIMPLE_PATTEN = r"(\\**)([^\\*]+)(\\**)";
 
   bool notifyListeners(String event, Object data) {
+    assert(event != null);
+
     var old = listeners[event];
     if (old == null) {
-      // print("Cannot find listeners with event $event");
-      return false;
-    }
+      bool hasFound = false;
+      for (String key in listeners.keys) {
+        RegExp regExp =
+            new RegExp(key.replaceAll("*", "[a-zA-Z0-9_\.\/\+\-]*"));
+        if (regExp.hasMatch(event)) {
+          hasFound = true;
+          notifyOne(listeners[key], event, data);
+        }
+      }
 
-    for (_ListenerInfo call in old) {
+      return hasFound;
+    }
+    return notifyOne(old, event, data);
+  }
+
+  bool notifyOne(List<_ListenerInfo> listeners, event, data) {
+    // just in case the listener is removed when executing
+    var arr = []..addAll(listeners);
+    for (_ListenerInfo call in arr) {
       call.call(event, data);
     }
     return true;
@@ -233,7 +250,6 @@ class _EventListener {
   }
 }
 
-
 _EventListener _listener = new _EventListener();
 
 /// error handler,if the error is handled ,return true
@@ -259,7 +275,7 @@ class PureMvc {
     return _listener.getModel(type);
   }
 
-  void setGlobalErrorHandler(OnError errorHandler) {
+  static void setGlobalErrorHandler(OnError errorHandler) {
     _listener.globalErrorHandler = errorHandler;
   }
 }
@@ -279,9 +295,13 @@ abstract class BaseModel {
 
   String get name;
 
-  Future setup() {}
+  Future setup() {
+    return null;
+  }
 
-  Future dispose() {}
+  Future dispose() {
+    return null;
+  }
 
   update(String event, var data) {}
 }

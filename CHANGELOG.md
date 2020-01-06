@@ -1,4 +1,16 @@
-# [0.0.8]
+# [0.1.1]
+
+* 支持通配符监听事件
+
+## [0.1.0]
+
+* setGlobalErrorHandler 改成static
+
+## [0.0.9]
+
+* update返回非future数据，也可以有默认通知
+
+## [0.0.8]
 
 * updte中的异常可以通过 Puremv.setGlobalErrorHandler 来处理，如果未设置，则打印异常
 

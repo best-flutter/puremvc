@@ -1,6 +1,7 @@
 library fpuremvc;
 
 import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 
 class _ListenerInfo {
@@ -68,28 +69,27 @@ class _ModelHolder {
   final BaseModel model;
   bool _init = false;
   Future setupLock;
+
   _ModelHolder(this.model);
-  void setup() async {
-    var ret = model.setup();
-    if (ret is Future) {
-      setupLock = ret;
-      ret.catchError((e) {
+
+  void setup() {
+    setupLock = Future.sync(() async{
+
+      try {
+        await model.setup();
+      } catch (e) {
         if (!_listener.handleUnhandledError(e)) {
           print("Unhandled error when setup");
           print(e);
         }
-      });
-      ret.whenComplete(() {
+      } finally {
         _init = true;
         while (queue.length > 0) {
           _Event event = queue.removeAt(0);
           updateModel(event.event, event.data);
         }
-      });
-      return;
-    } else {
-      _init = true;
-    }
+      }
+    });
   }
 
   void dispose() {
@@ -120,11 +120,13 @@ class _ModelHolder {
   }
 
   List<_Event> queue = [];
+
   void update(String event, Object data) {
     if (!_init) {
       //添加到队列
       print(
-          "Model ${model.name} is still seting up, add event [$event] to the queue");
+          "Model ${model
+              .name} is still seting up, add event [$event] to the queue");
       queue.add(new _Event(event, data));
     } else {
       updateModel(event, data);
@@ -172,7 +174,7 @@ class _EventListener {
 
   void remove(BaseModel model) {
     _ModelHolder holder = models.firstWhere(
-        (_ModelHolder holder) => holder.model == model,
+            (_ModelHolder holder) => holder.model == model,
         orElse: () => null);
     if (holder == null) {
       print("Cannot find model to remove ");
@@ -196,6 +198,7 @@ class _EventListener {
       old.add(info);
     }
   }
+
   //static const String SIMPLE_PATTEN = r"(\\**)([^\\*]+)(\\**)";
 
   bool notifyListeners(String event, Object data) {
@@ -206,7 +209,7 @@ class _EventListener {
       bool hasFound = false;
       for (String key in listeners.keys) {
         RegExp regExp =
-            new RegExp(key.replaceAll("*", "[a-zA-Z0-9_\.\/\+\-]*"));
+        new RegExp(key.replaceAll("*", "[a-zA-Z0-9_\.\/\+\-]*"));
         if (regExp.hasMatch(event)) {
           hasFound = true;
           notifyOne(listeners[key], event, data);
@@ -276,8 +279,8 @@ _EventListener _listener = new _EventListener();
 typedef bool OnError(e);
 
 class PureMvc {
-  static WidgetBuilder eventBuilder(
-      var eventOrEventList, WidgetBuilder builder) {
+  static WidgetBuilder eventBuilder(var eventOrEventList,
+      WidgetBuilder builder) {
     return (BuildContext context) {
       return new EventListener(
         builder: builder,

@@ -27,19 +27,17 @@ class _ListenerInfo {
 }
 
 @immutable
-class _WidgetBuilderEventListener extends StatefulWidget {
+class EventListener extends StatefulWidget {
   final WidgetBuilder builder;
   final dynamic event;
 
-  _WidgetBuilderEventListener(this.builder, this.event);
+  EventListener({@required this.builder, @required this.event});
 
   @override
-  __WidgetBuilderEventListenerState createState() =>
-      __WidgetBuilderEventListenerState();
+  _EventListenerState createState() => _EventListenerState();
 }
 
-class __WidgetBuilderEventListenerState
-    extends ObserverState<_WidgetBuilderEventListener> {
+class _EventListenerState extends ObserverState<EventListener> {
   @override
   void initState() {
     if (widget.event is String) {
@@ -69,21 +67,29 @@ class _Event {
 class _ModelHolder {
   final BaseModel model;
   bool _init = false;
+  Future setupLock;
   _ModelHolder(this.model);
   void setup() async {
     var ret = model.setup();
-    if (ret == null) {
-      _init = true;
+    if (ret is Future) {
+      setupLock = ret;
+      ret.catchError((e) {
+        if (!_listener.handleUnhandledError(e)) {
+          print("Unhandled error when setup");
+          print(e);
+        }
+      });
+      ret.whenComplete(() {
+        _init = true;
+        while (queue.length > 0) {
+          _Event event = queue.removeAt(0);
+          updateModel(event.event, event.data);
+        }
+      });
       return;
-    }
-
-    ret.whenComplete(() {
+    } else {
       _init = true;
-      while (queue.length > 0) {
-        _Event event = queue.removeAt(0);
-        updateModel(event.event, event.data);
-      }
-    });
+    }
   }
 
   void dispose() {
@@ -117,7 +123,8 @@ class _ModelHolder {
   void update(String event, Object data) {
     if (!_init) {
       //添加到队列
-      print("Still seting up, add event to the queue");
+      print(
+          "Model ${model.name} is still seting up, add event [$event] to the queue");
       queue.add(new _Event(event, data));
     } else {
       updateModel(event, data);
@@ -149,27 +156,18 @@ class _EventListener {
     } else {
       _ModelHolder model = modelMap[part[0]];
       if (model == null) {
-        print("Model is not exists!");
+        print("Model ${part[0]} is not exists!");
         return;
       }
       model.update(part[1], data);
     }
   }
 
-  bool init = false;
-
   void add(BaseModel model) {
     _ModelHolder holder = new _ModelHolder(model);
     models.add(holder);
     modelMap[model.name] = holder;
-    if (!init) {
-      init = true;
-      scheduleMicrotask(() {
-        for (_ModelHolder model in models) {
-          model.setup();
-        }
-      });
-    }
+    holder.setup();
   }
 
   void remove(BaseModel model) {
@@ -246,7 +244,29 @@ class _EventListener {
   BaseModel getModel(Type type) {
     return models
         .firstWhere((_ModelHolder model) => model.model.runtimeType == type)
-        .model;
+        ?.model;
+  }
+
+  Future<BaseModel> requestModel(Type type) {
+    _ModelHolder holder = models
+        .firstWhere((_ModelHolder model) => model.model.runtimeType == type);
+    if (holder == null) {
+      throw new Exception("Cannot find model by type $type");
+    }
+    if (holder._init) {
+      return Future.value(holder.model);
+    }
+
+    if (holder.setupLock == null) {
+      throw new Exception("Model $type is not setting up");
+    }
+
+    Completer<BaseModel> completer = new Completer<BaseModel>();
+    holder.setupLock.whenComplete(() {
+      completer.complete(holder.model);
+    });
+
+    return completer.future;
   }
 }
 
@@ -259,12 +279,19 @@ class PureMvc {
   static WidgetBuilder eventBuilder(
       var eventOrEventList, WidgetBuilder builder) {
     return (BuildContext context) {
-      return new _WidgetBuilderEventListener(builder, eventOrEventList);
+      return new EventListener(
+        builder: builder,
+        event: eventOrEventList,
+      );
     };
   }
 
   static void add(BaseModel model) {
     _listener.add(model);
+  }
+
+  static Future<BaseModel> requestModel(Type type) {
+    return _listener.requestModel(type);
   }
 
   static void remove(BaseModel model) {

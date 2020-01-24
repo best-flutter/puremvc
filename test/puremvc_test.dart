@@ -216,7 +216,47 @@ void main() {
     PureMvc.remove(testModel3);
   });
 
+  testWidgets('Test stateless widget', (WidgetTester tester) async {
+    // Build our app and trigger a frame.
+    PureMvc.setGlobalErrorHandler((e){
 
+
+      return false;
+    });
+    TestModel3 testModel3 = new TestModel3();
+    await tester.pumpWidget(MaterialApp(
+        home:EventListener(builder: (c)=> TestWidget5(
+          testModel3.number
+        ), event: "test3/*")));
+
+    expect(find.text("0", skipOffstage: true), findsOneWidget);
+    dispatch("test3/add",{"a":1,"b":2});
+
+    await tester.pumpWidget(MaterialApp(
+        home:EventListener(builder: (c)=> TestWidget5(
+            testModel3.number
+        ), event: "test3/*")));
+
+
+    expect(find.text("3", skipOffstage: true), findsOneWidget);
+    PureMvc.remove(testModel3);
+  });
+
+
+}
+
+class TestWidget5 extends StatelessWidget{
+
+  final int value;
+
+  TestWidget5(this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      child: Text("$value"),
+    );
+  }
 }
 
 class TestWidget4 extends StatefulWidget {

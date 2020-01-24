@@ -8,6 +8,7 @@
 .buildlog/
 .history
 .svn/
+coverage/*
 
 # IntelliJ related
 *.iml
@@ -71,3 +72,4 @@ build/
 !**/ios/**/default.pbxuser
 !**/ios/**/default.perspectivev3
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
+.coveralls.yml

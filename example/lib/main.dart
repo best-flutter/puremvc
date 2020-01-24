@@ -1,6 +1,4 @@
-import 'package:example/models.dart';
 import 'package:example/pages/home.dart';
-import 'package:example/pages/statfuldmo.dart';
 import 'package:example/routers.dart';
 import 'package:flutter/material.dart';
 

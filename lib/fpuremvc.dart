@@ -3,29 +3,9 @@ library fpuremvc;
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
+part '_src/_listener_info.dart';
+part '_src/_pure_mvc.dart';
 
-class _ListenerInfo {
-  State target;
-  String event;
-  Function callback;
-
-  _ListenerInfo(this.target, this.event, this.callback);
-
-  void call(String event, Object data) {
-    if (target.mounted) {
-      target.setState(() {
-        try {
-          Function.apply(this.callback, [data]);
-        } catch (e) {
-          print(e);
-        }
-      });
-    } else {
-      print(
-          "Trying to notify event $event but the target is not mounted anymore");
-    }
-  }
-}
 
 @immutable
 class EventListener extends StatefulWidget {
@@ -73,23 +53,42 @@ class _ModelHolder {
   _ModelHolder(this.model);
 
   void setup() {
-    setupLock = Future.sync(() async{
 
-      try {
-        await model.setup();
-      } catch (e) {
-        if (!_listener.handleUnhandledError(e)) {
-          print("Unhandled error when setup");
-          print(e);
-        }
-      } finally {
-        _init = true;
-        while (queue.length > 0) {
-          _Event event = queue.removeAt(0);
-          updateModel(event.event, event.data);
-        }
+    var setupResult ;
+    try{
+      setupResult=model.setup();
+    } catch(e){
+      _init = true;
+      if (!_listener.handleUnhandledError(e)) {
+        print("Unhandled error when model [${model.name}] setup $e");
       }
-    });
+      notify("${model.name}/setup@fail", e);
+      return;
+    }
+    if(setupResult is Future){
+      setupLock = Future.sync(() async{
+        try {
+          var ret = await setupResult;
+          notify("${model.name}/setup@ok", ret);
+        } catch (e) {
+          if (!_listener.handleUnhandledError(e)) {
+            print("Unhandled error when model [${model.name}] setup $e");
+          }
+          notify("${model.name}/setup@fail", e);
+        } finally {
+          _init = true;
+          notify("${model.name}/setup@end", null);
+          while (queue.length > 0) {
+            _Event event = queue.removeAt(0);
+            updateModel(event.event, event.data);
+          }
+        }
+      });
+    }else{
+      _init=true;
+      notify("${model.name}/setup@ok", null);
+    }
+
   }
 
   void dispose() {
@@ -106,10 +105,8 @@ class _ModelHolder {
         if (!notify("${model.name}/$event@fail", e)) {
           if (!_listener.handleUnhandledError(e)) {
             print("Error has happened, and no handle is found $e");
-            return Future.error(e);
           }
         }
-        return null;
       }).whenComplete(() {
         notify("${model.name}/$event@end", null);
       });
@@ -137,7 +134,7 @@ class _ModelHolder {
 class _EventListener {
   List<_ModelHolder> models = [];
 
-  Map<String, List<_ListenerInfo>> listeners = {};
+  List<_ListenerInfoHolder> listeners = [];
   Map<String, _ModelHolder> modelMap = {};
 
   OnError globalErrorHandler;
@@ -165,7 +162,19 @@ class _EventListener {
     }
   }
 
+  bool contains(String name){
+    for(_ModelHolder holder in models){
+      if(holder.model.name == name){
+        return true;
+      }
+    }
+    return false;
+  }
+
   void add(BaseModel model) {
+    if(contains(model.name)){
+      throw new Exception("Model with name [${model.name}] already added!");
+    }
     _ModelHolder holder = new _ModelHolder(model);
     models.add(holder);
     modelMap[model.name] = holder;
@@ -185,63 +194,57 @@ class _EventListener {
     holder.dispose();
   }
 
-  void bind(Object target, String event, Function listener) {
-    assert(target != null);
+  void bind(State target, String event, Function listener) {
     assert(event != null);
     assert(listener != null);
 
-    var old = listeners[event];
-    _ListenerInfo info = new _ListenerInfo(target, event, listener);
-    if (old == null) {
-      listeners[event] = [info];
-    } else {
-      old.add(info);
+    _ListenerInfoHolder holder = listeners.firstWhere((_ListenerInfoHolder holder)=>holder.key==event,orElse:()=>null);
+    if(holder==null){
+      holder = new _ListenerInfoHolder(event);
+      listeners.add(holder);
     }
+    _ListenerInfo info = new _ListenerInfo(target, event, listener);
+    holder.infos.add(info);
   }
 
+  bool notifyRegExp(String event,Object data){
+
+    bool hasFound = false;
+    for(_ListenerInfoHolder holder in listeners){
+      if(holder.match(event)){
+        hasFound = true;
+        holder.notify(event,data);
+      }
+    }
+    return hasFound;
+  }
   //static const String SIMPLE_PATTEN = r"(\\**)([^\\*]+)(\\**)";
 
   bool notifyListeners(String event, Object data) {
     assert(event != null);
-
-    var old = listeners[event];
-    if (old == null) {
-      bool hasFound = false;
-      for (String key in listeners.keys) {
-        RegExp regExp =
-        new RegExp(key.replaceAll("*", "[a-zA-Z0-9_\.\/\+\-]*"));
-        if (regExp.hasMatch(event)) {
-          hasFound = true;
-          notifyOne(listeners[key], event, data);
-        }
-      }
-
-      return hasFound;
-    }
-    return notifyOne(old, event, data);
+    return notifyRegExp(event, data);
   }
 
-  bool notifyOne(List<_ListenerInfo> listeners, event, data) {
-    // just in case the listener is removed when executing
-    var arr = []..addAll(listeners);
-    for (_ListenerInfo call in arr) {
-      call.call(event, data);
+
+
+  void unbind({
+    Object target,
+    String event
+}) {
+    for(_ListenerInfoHolder holder in []..addAll(listeners)){
+      if(holder.unbind(target:target,event: event) && holder.infos.length==0){
+        listeners.remove(holder);
+      }
     }
-    return true;
   }
 
-  void unbiind(Object target) {
-    for (String key in []..addAll(listeners.keys)) {
-      List<_ListenerInfo> eventInfos = listeners[key];
-      for (int i = eventInfos.length - 1; i >= 0; --i) {
-        if (eventInfos[i].target == target) {
-          eventInfos.removeAt(i);
-        }
-      }
-      if (eventInfos.length == 0) {
-        listeners.remove(key);
+  bool hasListener(String event){
+    for(_ListenerInfoHolder holder in listeners){
+      if(holder.match(event)){
+        return true;
       }
     }
+    return false;
   }
 
   BaseModel getModel(Type type) {
@@ -274,86 +277,3 @@ class _EventListener {
 }
 
 _EventListener _listener = new _EventListener();
-
-/// error handler,if the error is handled ,return true
-typedef bool OnError(e);
-
-class PureMvc {
-  static WidgetBuilder eventBuilder(var eventOrEventList,
-      WidgetBuilder builder) {
-    return (BuildContext context) {
-      return new EventListener(
-        builder: builder,
-        event: eventOrEventList,
-      );
-    };
-  }
-
-  static void add(BaseModel model) {
-    _listener.add(model);
-  }
-
-  static Future<BaseModel> requestModel(Type type) {
-    return _listener.requestModel(type);
-  }
-
-  static void remove(BaseModel model) {
-    _listener.remove(model);
-  }
-
-  static BaseModel getModel(Type type) {
-    return _listener.getModel(type);
-  }
-
-  static void setGlobalErrorHandler(OnError errorHandler) {
-    _listener.globalErrorHandler = errorHandler;
-  }
-}
-
-void dispatch(String event, [Object data]) {
-  _listener.dispatch(event, data);
-}
-
-bool notify(String event, Object data) {
-  return _listener.notifyListeners(event, data);
-}
-
-abstract class BaseModel {
-  BaseModel() {
-    PureMvc.add(this);
-  }
-
-  String get name;
-
-  Future setup() {
-    return null;
-  }
-
-  Future dispose() {
-    return null;
-  }
-
-  update(String event, var data) {}
-}
-
-abstract class ObserverState<T extends StatefulWidget> extends State<T> {
-  void bind(String event, Function listener) {
-    _listener.bind(this, event, listener);
-  }
-
-  @override
-  void dispose() {
-    _listener.unbiind(this);
-    super.dispose();
-  }
-}
-
-mixin Observer<T extends StatefulWidget> on State<T> {
-  void bind(String event, Function listener) {
-    _listener.bind(this, event, listener);
-  }
-
-  void unbind() {
-    _listener.unbiind(this);
-  }
-}

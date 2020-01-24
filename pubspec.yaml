@@ -1,7 +1,6 @@
 name: fpuremvc
 description: puremvc for flutter
-version: 0.2.0
-author: jzoom<jzoom8112@gmail.com>
+version: 0.3.0
 homepage: https://github.com/best-flutter/puremvc
 
 environment:

@@ -6,11 +6,15 @@ import 'package:fpuremvc/fpuremvc.dart';
 
 Map<String, WidgetBuilder> routers = {
   /// 定义个WidgetBuild,在监听到通知number/*@ok的时候重建， * 为通配符
-  "stateless": PureMvc.eventBuilder(["number/*@ok"], (c) {
-    return StatelessDemo(
-      counter: numberModel.counter,
-    );
-  }),
+  "stateless": (c) {
+    return new EventListener(
+        event: ["number/*"],
+        builder: (c) {
+          return StatelessDemo(
+            counter: numberModel.counter,
+          );
+        });
+  },
 
   "stateful": (c) {
     return StatefulDemo(

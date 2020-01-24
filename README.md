@@ -1,3 +1,20 @@
+<p align="center">
+    <a href="https://travis-ci.org/best-flutter/puremvc">
+        <img src="https://travis-ci.org/best-flutter/puremvc.svg?branch=master" alt="Build Status" />
+    </a>
+    <a href="https://coveralls.io/github/best-flutter/puremvc?branch=master">
+        <img src="https://coveralls.io/repos/github/best-flutter/puremvc/badge.svg?branch=master" alt="Coverage Status" />
+    </a>
+    <a href="https://github.com/jzoom/puremvc/pulls">
+        <img src="https://img.shields.io/badge/PRs-Welcome-brightgreen.svg" alt="PRs Welcome" />
+    </a>
+    <a href="https://pub.dartlang.org/packages/puremvc">
+        <img src="https://img.shields.io/pub/v/puremvc.svg" alt="pub package" />
+    </a>
+    <a target="_blank" href="https://shang.qq.com/wpa/qunwpa?idkey=a71a2504cda4cc9ace3320f2dc588bdae928abc671e903463caeb71ec9302c2c"><img border="0" src="https://pub.idqqimg.com/wpa/images/group.png" alt="best-flutter" title="best-flutter"></a>
+</p>
+
+
 # puremvc
 
 puremvc for flutter
